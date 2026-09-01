@@ -13,11 +13,31 @@ mkdir -p "$USAGE_DIR"
 except=()
 status=0
 user_flags=()
-for arg in "$@"; do
-  case "$arg" in
-    --force|--limits-only) user_flags+=("$arg") ;;
+only=()
+declare -A excluded
+
+while (( $# > 0 )); do
+  case "$1" in
+    --force|--limits-only) user_flags+=("$1") ;;
+    --except)
+      [[ $# -ge 2 ]] || { echo "run-usage-update: --except needs an id" >&2; exit 2; }
+      excluded["$2"]=1
+      shift
+      ;;
+    *) only+=("$1") ;;
   esac
+  shift
 done
+
+wanted() {
+  local agent="$1" candidate
+  [[ -n ${excluded[$agent]:-} ]] && return 1
+  (( ${#only[@]} == 0 )) && return 0
+  for candidate in "${only[@]}"; do
+    [[ $candidate == "$agent" ]] && return 0
+  done
+  return 1
+}
 
 collect_stdout() {
   local collector="$1" agent="$2"
@@ -38,11 +58,15 @@ for collector in "$USER_DIR"/omarchy-agent-usage-*; do
   agent="${collector##*/omarchy-agent-usage-}"
   [[ $agent == "update" ]] && continue
   except+=(--except "$agent")
+  wanted "$agent" || continue
   collect_stdout "$collector" "$agent" "${user_flags[@]}" || status=1
 done
 
 if [[ -x $PACKAGED ]]; then
-  "$PACKAGED" "${except[@]}" "$@" || status=1
+  packaged_args=("${user_flags[@]}" "${except[@]}")
+  for agent in "${!excluded[@]}"; do packaged_args+=(--except "$agent"); done
+  packaged_args+=("${only[@]}")
+  "$PACKAGED" "${packaged_args[@]}" || status=1
 fi
 
 exit "$status"
