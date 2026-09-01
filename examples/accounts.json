@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "accounts": {
+    "claude-personal": {
+      "provider": "claude",
+      "name": "Claude personal",
+      "configDir": "~/.claude",
+      "loginHint": "Run Claude Code with this profile, then use /login."
+    },
+    "codex-work": {
+      "provider": "codex",
+      "name": "Codex work",
+      "configDir": "~/.codex-work",
+      "loginHint": "Run codex login with CODEX_HOME set to this profile."
+    }
+  }
+}

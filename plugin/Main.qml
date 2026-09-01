@@ -211,7 +211,11 @@ Item {
     for (var syncedId in syncedProviders) {
       if (localIds[syncedId] || !providerEnabled(syncedId)) continue
       var stats = syncedProviders[syncedId] || {}
-      var syncedDisplay = displayProvider({ id: syncedId, name: stats.providerName || syncedId })
+      var syncedDisplay = displayProvider({
+        id: syncedId,
+        name: stats.providerName || syncedId,
+        providerFamily: stats.providerFamily || syncedId
+      })
       if (providerHasData(syncedDisplay)) result.push(syncedDisplay)
     }
     return result
@@ -255,6 +259,7 @@ Item {
     return {
       providerId: String(record.id),
       providerName: String(record.name || record.id),
+      providerFamily: String(record.providerFamily || record.id),
       ready: record.ready === true || synced,
       usageStatusText: String(record.usageStatusText || ""),
       authHelpText: String(record.authHelpText || ""),
@@ -665,6 +670,7 @@ Item {
       providers[id] = {
         providerId: id,
         providerName: "",
+        providerFamily: id,
         ready: false,
         hasLocalStats: false,
         hasPromptStats: false,
@@ -693,6 +699,7 @@ Item {
         var acc = providerAcc(String(providerId))
         acc.devices[device] = true
         if (stats.providerName && acc.providerName === "") acc.providerName = String(stats.providerName)
+        if (stats.providerFamily) acc.providerFamily = String(stats.providerFamily)
         acc.ready = acc.ready || stats.ready === true
         acc.hasLocalStats = acc.hasLocalStats || stats.hasLocalStats !== false
         // Snapshots from before the field existed only came from agents that
@@ -738,6 +745,7 @@ Item {
       outProviders[id] = {
         providerId: acc.providerId,
         providerName: acc.providerName,
+        providerFamily: acc.providerFamily,
         ready: acc.ready || providerDevices.length > 0,
         hasLocalStats: acc.hasLocalStats,
         hasPromptStats: acc.hasPromptStats,
@@ -771,6 +779,7 @@ Item {
     return {
       providerId: String(record.id),
       providerName: String(record.name || record.id),
+      providerFamily: String(record.providerFamily || record.id),
       ready: record.ready === true,
       hasLocalStats: record.hasLocalStats !== false,
       hasPromptStats: record.hasPromptStats !== false,

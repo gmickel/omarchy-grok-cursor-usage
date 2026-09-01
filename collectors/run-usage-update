@@ -5,8 +5,9 @@
 set -euo pipefail
 
 USAGE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/agents/usage"
-USER_DIR="$HOME/.config/omarchy/agents"
+USER_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/agents"
 PACKAGED="${OMARCHY_PATH:-/usr/share/omarchy}/bin/omarchy-agent-usage-update"
+PROFILE_COLLECTOR="$USER_DIR/account-profile-collector.py"
 
 mkdir -p "$USAGE_DIR"
 
@@ -24,6 +25,7 @@ while (( $# > 0 )); do
       excluded["$2"]=1
       shift
       ;;
+    --*) echo "run-usage-update: unknown option: $1" >&2; exit 2 ;;
     *) only+=("$1") ;;
   esac
   shift
@@ -52,11 +54,29 @@ collect_stdout() {
   mv "$tmp" "$USAGE_DIR/$agent.json"
 }
 
+declare -A configured
+if [[ -f $PROFILE_COLLECTOR ]]; then
+  if account_json=$(python3 "$PROFILE_COLLECTOR" --list); then
+    while IFS=$'\t' read -r agent provider; do
+      [[ -n $agent && -n $provider ]] || continue
+      configured["$agent"]=1
+      excluded["$provider"]=1
+      except+=(--except "$agent")
+      wanted "$agent" || continue
+      collect_stdout "$PROFILE_COLLECTOR" "$agent" --account "$agent" "${user_flags[@]}" || status=1
+    done < <(jq -r '.[] | [.id, .provider] | @tsv' <<<"$account_json")
+  else
+    echo "run-usage-update: account profile configuration failed" >&2
+    status=1
+  fi
+fi
+
 shopt -s nullglob
 for collector in "$USER_DIR"/omarchy-agent-usage-*; do
   [[ -x $collector || -f $collector ]] || continue
   agent="${collector##*/omarchy-agent-usage-}"
   [[ $agent == "update" ]] && continue
+  [[ -n ${configured[$agent]:-} ]] && continue
   except+=(--except "$agent")
   wanted "$agent" || continue
   collect_stdout "$collector" "$agent" "${user_flags[@]}" || status=1

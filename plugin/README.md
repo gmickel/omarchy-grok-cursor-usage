@@ -47,6 +47,12 @@ plugin.
 Collectors under `collectors/` are installed separately by the same
 `install.sh` into `~/.config/omarchy/agents/` (also one-way copy).
 
+Configured Claude/Codex profiles keep their unique record id but include a
+`providerFamily` field. The plugin uses the family mark for those records, so
+`claude-work` can reuse `assets/claude.svg`. Account configuration and
+cache-isolation details live in
+[../docs/account-profiles.md](../docs/account-profiles.md).
+
 ## Placeholder ids in source
 
 Files in `plugin/` use the placeholder **`yourname.agents`** (for example

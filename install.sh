@@ -57,6 +57,8 @@ mkdir -p "$AGENTS_DIR"
 for name in omarchy-agent-usage-grok omarchy-agent-usage-cursor omarchy-agent-usage-codex run-usage-update omarchy-grok-usage-watch; do
   install -m 0755 "$ROOT/collectors/$name" "$AGENTS_DIR/$name"
 done
+install -m 0755 "$ROOT/collectors/account-profile-collector.py" "$AGENTS_DIR/account-profile-collector.py"
+install -m 0644 "$ROOT/examples/accounts.json" "$AGENTS_DIR/accounts.example.json"
 log "installed collectors: $AGENTS_DIR"
 
 if (( APPLY_LAYOUT )); then

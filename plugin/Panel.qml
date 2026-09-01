@@ -185,7 +185,7 @@ Panel {
   }
 
   function providerGlyph() {
-    var id = provider ? String(provider.providerId) : ""
+    var id = provider ? String(provider.providerFamily || provider.providerId) : ""
     if (id === "grok") return "\ue904"
     if (id === "codex") return "\ue905"
     return "󱚣"
@@ -1397,12 +1397,13 @@ Panel {
           width: Style.font.display
           height: Style.font.display
           readonly property string pid: block.provider ? String(block.provider.providerId || "") : ""
-          readonly property bool fontMark: pid === "grok" || pid === "codex"
+          readonly property string iconId: block.provider ? String(block.provider.providerFamily || pid) : pid
+          readonly property bool fontMark: iconId === "grok" || iconId === "codex"
 
           Text {
             visible: fontMark
             anchors.centerIn: parent
-            text: pid === "grok" ? "\ue904" : "\ue905"
+            text: iconId === "grok" ? "\ue904" : "\ue905"
             color: root.foreground
             font.family: root.iconFontFamily
             font.pixelSize: parent.height
@@ -1415,7 +1416,7 @@ Panel {
             visible: false
             layer.enabled: !fontMark
             anchors.fill: parent
-            source: fontMark || pid === "" ? "" : Qt.resolvedUrl("assets/" + pid + ".svg")
+            source: fontMark || iconId === "" ? "" : Qt.resolvedUrl("assets/" + iconId + ".svg")
             sourceSize.width: Style.font.display * 2
             sourceSize.height: Style.font.display * 2
             fillMode: Image.PreserveAspectFit

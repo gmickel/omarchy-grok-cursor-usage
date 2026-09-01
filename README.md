@@ -60,6 +60,29 @@ omarchy restart shell
 
 Refresh: left-click the icon, then `r`, or wait for the 15-minute timer.
 
+### Multiple Claude or Codex accounts
+
+The updater can expose each Claude Code or Codex profile as a separate panel
+entry. Installation places an example at
+`~/.config/omarchy/agents/accounts.example.json`. Copy it to `accounts.json`,
+then replace the example ids, labels, and profile directories:
+
+```bash
+cp ~/.config/omarchy/agents/accounts.example.json \
+  ~/.config/omarchy/agents/accounts.json
+$EDITOR ~/.config/omarchy/agents/accounts.json
+~/.config/omarchy/agents/run-usage-update --force
+```
+
+No symlinks or per-account wrapper scripts are required. Account collectors
+reuse the existing Claude/Codex login in each configured profile directory.
+Each account gets an isolated cache, preventing one Claude profile's rate
+limits from being shown for another. Once a provider has configured accounts,
+the updater suppresses that provider's packaged aggregate card.
+
+Full schema, path resolution, collector precedence, limitations, and examples:
+[docs/account-profiles.md](docs/account-profiles.md).
+
 ### Manual layout
 
 ```json
@@ -83,6 +106,7 @@ only scans `$OMARCHY_PATH/bin/`, so extra agents live as user collectors:
 | `collectors/omarchy-agent-usage-grok` | SuperGrok weekly percent + plan name |
 | `collectors/omarchy-agent-usage-cursor` | Ultra monthly Cursor / Other percents |
 | `collectors/omarchy-agent-usage-codex` | Codex weekly limit + local session stats |
+| `collectors/account-profile-collector.py` | Adapt configured Claude/Codex profiles into independent records |
 | `collectors/run-usage-update` | User collectors first, then packaged Claude / Fireworks |
 | `plugin/history.py` | leftover time series (plateau-merged) |
 
@@ -111,6 +135,7 @@ charts only plot windows about 7 days or longer.
 | `~/.local/state/omarchy/agents/usage/<id>.json` | latest snapshot (percents, plan, optional token totals) |
 | `~/.local/state/omarchy/agents/history/<id>.json` | leftover samples for the chart |
 | `~/.config/omarchy/agents/` | user collectors |
+| `~/.config/omarchy/agents/accounts.json` | optional Claude/Codex profile definitions; paths only, no credentials |
 | `~/.config/omarchy/plugins/$USER.agents/` | this widget |
 
 Do not commit usage or history files. They can include spend rates.
@@ -122,6 +147,9 @@ Do not commit usage or history files. They can include spend rates.
 `install.sh` only; nothing syncs them automatically.
 
 ```bash
+tests/account-profile-collector-test.sh
+tests/run-usage-update-test.sh
+tests/install-test.sh
 ./install.sh --force      # copy plugin/ → ~/.config/omarchy/plugins/$USER.agents/
 omarchy restart shell     # reload Quickshell
 git push                  # after commit; others pull + reinstall

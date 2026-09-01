@@ -101,3 +101,9 @@ omarchy bar set yourname.agents providers '{
 ```
 
 Use the plugin id `install.sh` created (`$USER.agents`).
+
+## Existing Claude or Codex account
+
+Do not write another collector just to show a second Claude Code or Codex
+configuration directory. Add it to `~/.config/omarchy/agents/accounts.json`
+instead. See [Multiple account profiles](account-profiles.md).
