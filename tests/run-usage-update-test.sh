@@ -51,10 +51,12 @@ chmod +x "$packaged/omarchy-agent-usage-update"
 
 run=(env HOME="$tmp" XDG_CONFIG_HOME="$tmp/config" XDG_STATE_HOME="$tmp/state" OMARCHY_PATH="$tmp/omarchy" PACKAGED_ARGS_FILE="$tmp/packaged.args" "$agents/run-usage-update")
 
+printf '%s\n' '{"id":"claude","ready":true}' >"$usage/claude.json"
 "${run[@]}" --limits-only
 jq -e --arg profile "$tmp/profiles/one" '.id == "claude-one" and .profile == $profile and .flags == ["--limits-only"]' "$usage/claude-one.json" >/dev/null
 jq -e --arg profile "$tmp/profiles/two" '.id == "claude-two" and .profile == $profile' "$usage/claude-two.json" >/dev/null
 jq -e '.id == "grok"' "$usage/grok.json" >/dev/null
+[[ ! -e $usage/claude.json ]]
 grep -qx -- "--except" "$tmp/packaged.args"
 grep -qx "claude" "$tmp/packaged.args"
 grep -qx "claude-one" "$tmp/packaged.args"
@@ -66,6 +68,12 @@ mv "$usage/claude-two.json" "$tmp/claude-two.before"
 "${run[@]}" claude-one
 [[ -f $usage/claude-one.json ]]
 [[ ! -f $usage/claude-two.json ]]
+
+mv "$usage/claude-one.json" "$tmp/claude-one.selected"
+"${run[@]}" claude
+[[ -f $usage/claude-one.json ]]
+[[ -f $usage/claude-two.json ]]
+grep -qx "claude" "$tmp/packaged.args"
 
 set +e
 "${run[@]}" --forc >/dev/null 2>"$tmp/unknown.stderr"

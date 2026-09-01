@@ -78,7 +78,8 @@ No symlinks or per-account wrapper scripts are required. Account collectors
 reuse the existing Claude/Codex login in each configured profile directory.
 Each account gets an isolated cache, preventing one Claude profile's rate
 limits from being shown for another. Once a provider has configured accounts,
-the updater suppresses that provider's packaged aggregate card.
+the updater replaces that provider's generated aggregate card after the first
+successful account refresh.
 
 Full schema, path resolution, collector precedence, limitations, and examples:
 [docs/account-profiles.md](docs/account-profiles.md).

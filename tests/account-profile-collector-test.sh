@@ -79,6 +79,11 @@ jq -e --arg dir "$tmp/profiles/codex" '
   and .providerFamily == "codex" and .configSeen == $dir
 ' <<<"$codex" >/dev/null
 
+mkdir -p "$tmp/omarchy/bin"
+mv "$tmp/config/omarchy/agents/omarchy-agent-usage-codex" "$tmp/omarchy/bin/omarchy-agent-usage-codex"
+codex=$(env "${common_env[@]}" OMARCHY_PATH="$tmp/omarchy" python3 "$collector" --account codex-default)
+jq -e --arg dir "$tmp/profiles/codex" '.configSeen == $dir' <<<"$codex" >/dev/null
+
 set +e
 env "${common_env[@]}" python3 "$collector" --account claude-one --fail >/dev/null 2>"$tmp/fail.stderr"
 rc=$?
@@ -106,5 +111,30 @@ rc=$?
 set -e
 [[ $rc -eq 2 ]]
 grep -q "invalid account id '.hidden'" "$tmp/bad-id.stderr"
+
+cat >"$tmp/missing-dir.json" <<'EOF'
+{"schemaVersion":1,"accounts":{"claude-missing":{"provider":"claude"}}}
+EOF
+set +e
+OMARCHY_AGENT_ACCOUNTS_FILE="$tmp/missing-dir.json" python3 "$collector" --list >/dev/null 2>"$tmp/missing-dir.stderr"
+rc=$?
+set -e
+[[ $rc -eq 2 ]]
+grep -q "missing configDir for claude-missing" "$tmp/missing-dir.stderr"
+
+cat >"$tmp/bin/broken-collector" <<'EOF'
+#! /definitely/missing/interpreter
+EOF
+chmod +x "$tmp/bin/broken-collector"
+cat >"$tmp/broken-collector.json" <<EOF
+{"schemaVersion":1,"accounts":{"claude-broken":{"provider":"claude","configDir":"$tmp/profiles/one","collector":"$tmp/bin/broken-collector"}}}
+EOF
+set +e
+OMARCHY_AGENT_ACCOUNTS_FILE="$tmp/broken-collector.json" python3 "$collector" --account claude-broken >/dev/null 2>"$tmp/broken-collector.stderr"
+rc=$?
+set -e
+[[ $rc -eq 2 ]]
+grep -q "cannot run base collector for claude-broken" "$tmp/broken-collector.stderr"
+! grep -q "Traceback" "$tmp/broken-collector.stderr"
 
 echo "account profile collector: pass"

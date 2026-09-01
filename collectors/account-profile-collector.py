@@ -57,6 +57,9 @@ def load_accounts(config_path: Path) -> dict[str, dict[str, Any]]:
         provider = account.get("provider")
         if provider not in SUPPORTED:
             raise ValueError(f"unsupported provider for {account_id}: {provider!r}")
+        config_dir = account.get("configDir")
+        if not isinstance(config_dir, str) or not config_dir.strip():
+            raise ValueError(f"missing configDir for {account_id}")
         result[account_id] = account
     return result
 
@@ -75,7 +78,7 @@ def resolve_collector(account: dict[str, Any], provider: str, config_path: Path)
             Path("/usr/bin") / name,
         ]
     for candidate in candidates:
-        if candidate.is_file() and os.access(candidate, os.X_OK):
+        if candidate.exists():
             return candidate
     return candidates[0]
 
@@ -127,13 +130,16 @@ def main() -> int:
     env[SUPPORTED[provider]] = str(config_dir_path)
     cache_home = Path(env.get("XDG_CACHE_HOME", Path.home() / ".cache")).expanduser()
     env["XDG_CACHE_HOME"] = str(cache_home / "omarchy" / "agent-profile-cache" / account_id)
-    completed = subprocess.run(
-        [str(collector), *sys.argv[3:]],
-        env=env,
-        text=True,
-        stdout=subprocess.PIPE,
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            [str(collector), *sys.argv[3:]],
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            check=False,
+        )
+    except OSError as exc:
+        return fail(f"cannot run base collector for {account_id}: {exc}")
     if completed.returncode != 0:
         return completed.returncode
 

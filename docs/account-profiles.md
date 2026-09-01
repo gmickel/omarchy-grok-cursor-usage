@@ -87,7 +87,9 @@ collector from:
 3. `/usr/bin/omarchy-agent-usage-<provider>`
 
 This preserves user overrides, then follows Omarchy's installation path, with
-`/usr/bin` as a compatibility fallback.
+`/usr/bin` as a compatibility fallback. Collectors must be executable. A
+present but non-executable user override fails explicitly instead of silently
+falling through to a different implementation.
 
 ## Update behavior
 
@@ -98,20 +100,31 @@ collectors. It supports the same selection grammar for both:
 run-usage-update --force
 run-usage-update --limits-only
 run-usage-update claude-work
+run-usage-update claude
 run-usage-update --except claude-personal
 ```
 
 Unknown options fail instead of silently skipping every collector. If a
 configured account id matches a user collector filename, the explicit account
-configuration wins. Configuring one or more accounts for a provider suppresses
-the packaged aggregate card for that provider. Include the default profile in
-`accounts.json` if you still want it displayed.
+configuration wins. Selecting a provider id such as `claude` refreshes all of
+that provider's configured accounts. Once at least one account refreshes
+successfully, the updater removes the provider's generated aggregate snapshot
+and suppresses its packaged collector. If every configured account fails, the
+packaged aggregate remains available as fallback. Include the default profile
+in `accounts.json` if you still want it displayed separately.
+
+Removing an entry from `accounts.json` does not delete its last generated
+snapshot because the updater cannot prove who owns arbitrary usage files.
+Remove the corresponding generated file from
+`~/.local/state/omarchy/agents/usage/` once you no longer want that card.
 
 Each account receives a separate `XDG_CACHE_HOME` below
 `~/.cache/omarchy/agent-profile-cache/<account-id>/`. This matters for Claude:
 the packaged collector otherwise caches its most recent limits in one shared
 file for several seconds, allowing sequential profiles to show the wrong
-subscription's quota.
+subscription's quota. On a probe failure, the packaged collector can retain
+that cached value as fallback until the quota window resets, so isolation is
+required even when refreshes are far apart.
 
 ## Local-statistics limitation
 
@@ -123,6 +136,10 @@ sessions. Those sources do not identify which Claude or Codex subscription was
 used, so their token and prompt totals may appear in more than one account
 record. Do not sum local-statistics totals across profile cards. This does not
 affect rate-limit percentages or reset times.
+
+Per-account records do not currently receive leftover-over-time charts. Chart
+history is keyed by exact provider id for Grok, Cursor, and the aggregate Codex
+record; reusing a provider-family history key would mix account quotas.
 
 ## Security boundary
 

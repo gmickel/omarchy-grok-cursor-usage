@@ -41,6 +41,16 @@ wanted() {
   return 1
 }
 
+account_wanted() {
+  local agent="$1" provider="$2" candidate
+  [[ -n ${excluded[$agent]:-} || -n ${excluded[$provider]:-} ]] && return 1
+  (( ${#only[@]} == 0 )) && return 0
+  for candidate in "${only[@]}"; do
+    [[ $candidate == "$agent" || $candidate == "$provider" ]] && return 0
+  done
+  return 1
+}
+
 collect_stdout() {
   local collector="$1" agent="$2"
   shift 2
@@ -54,22 +64,33 @@ collect_stdout() {
   mv "$tmp" "$USAGE_DIR/$agent.json"
 }
 
-declare -A configured
+declare -A configured successful_providers
 if [[ -f $PROFILE_COLLECTOR ]]; then
   if account_json=$(python3 "$PROFILE_COLLECTOR" --list); then
     while IFS=$'\t' read -r agent provider; do
       [[ -n $agent && -n $provider ]] || continue
       configured["$agent"]=1
-      excluded["$provider"]=1
       except+=(--except "$agent")
-      wanted "$agent" || continue
-      collect_stdout "$PROFILE_COLLECTOR" "$agent" --account "$agent" "${user_flags[@]}" || status=1
+      account_wanted "$agent" "$provider" || continue
+      if collect_stdout "$PROFILE_COLLECTOR" "$agent" --account "$agent" "${user_flags[@]}"; then
+        successful_providers["$provider"]=1
+      else
+        status=1
+      fi
     done < <(jq -r '.[] | [.id, .provider] | @tsv' <<<"$account_json")
   else
     echo "run-usage-update: account profile configuration failed" >&2
     status=1
   fi
 fi
+
+for provider in "${!successful_providers[@]}"; do
+  excluded["$provider"]=1
+  # Usage files are generated snapshots. Once a profile record succeeds, the
+  # packaged aggregate would duplicate it and can carry another account's
+  # cached limits. Keep an explicitly configured provider-id account itself.
+  [[ -n ${configured[$provider]:-} ]] || rm -f -- "$USAGE_DIR/$provider.json"
+done
 
 shopt -s nullglob
 for collector in "$USER_DIR"/omarchy-agent-usage-*; do
