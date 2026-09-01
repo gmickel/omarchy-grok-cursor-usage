@@ -79,7 +79,7 @@ Set `OMARCHY_AGENT_ACCOUNTS_FILE` to use another configuration file.
 
 ## Collector resolution
 
-Unless an account sets `collector`, the adapter selects the first executable
+Unless an account sets `collector`, the adapter selects the first existing
 collector from:
 
 1. `$XDG_CONFIG_HOME/omarchy/agents/omarchy-agent-usage-<provider>`
@@ -106,17 +106,24 @@ run-usage-update --except claude-personal
 
 Unknown options fail instead of silently skipping every collector. If a
 configured account id matches a user collector filename, the explicit account
-configuration wins. Selecting a provider id such as `claude` refreshes all of
-that provider's configured accounts. Once at least one account refreshes
-successfully, the updater removes the provider's generated aggregate snapshot
-and suppresses its packaged collector. If every configured account fails, the
-packaged aggregate remains available as fallback. Include the default profile
-in `accounts.json` if you still want it displayed separately.
+configuration wins. Positive selection by a provider id such as `claude`
+refreshes all of that provider's configured accounts. `--except` remains an
+exact record-id exclusion, so a stale disabled setting for the old aggregate
+card cannot silently disable every configured account. Once at least one
+account refreshes successfully, the updater removes the provider's generated
+aggregate snapshot and suppresses its packaged collector. If every configured
+account fails, the packaged aggregate remains available as fallback. Include
+the default profile in `accounts.json` if you still want it displayed
+separately.
 
 Removing an entry from `accounts.json` does not delete its last generated
 snapshot because the updater cannot prove who owns arbitrary usage files.
 Remove the corresponding generated file from
 `~/.local/state/omarchy/agents/usage/` once you no longer want that card.
+
+Sync keeps provider ids unchanged. Until every synced machine migrates, an
+unmigrated device may continue publishing the old aggregate `claude` or `codex`
+card alongside the new account-specific records.
 
 Each account receives a separate `XDG_CACHE_HOME` below
 `~/.cache/omarchy/agent-profile-cache/<account-id>/`. This matters for Claude:

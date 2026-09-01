@@ -43,7 +43,7 @@ wanted() {
 
 account_wanted() {
   local agent="$1" provider="$2" candidate
-  [[ -n ${excluded[$agent]:-} || -n ${excluded[$provider]:-} ]] && return 1
+  [[ -n ${excluded[$agent]:-} ]] && return 1
   (( ${#only[@]} == 0 )) && return 0
   for candidate in "${only[@]}"; do
     [[ $candidate == "$agent" || $candidate == "$provider" ]] && return 0

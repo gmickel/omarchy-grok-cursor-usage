@@ -75,6 +75,26 @@ mv "$usage/claude-one.json" "$tmp/claude-one.selected"
 [[ -f $usage/claude-two.json ]]
 grep -qx "claude" "$tmp/packaged.args"
 
+mv "$usage/claude-one.json" "$tmp/claude-one.provider"
+mv "$usage/claude-two.json" "$tmp/claude-two.provider"
+"${run[@]}" --except claude
+[[ -f $usage/claude-one.json ]]
+[[ -f $usage/claude-two.json ]]
+
+cp "$agents/accounts.json" "$tmp/accounts.good.json"
+cat >"$agents/accounts.json" <<'EOF'
+{"schemaVersion":1,"accounts":{"broken":"not an object"}}
+EOF
+mv "$usage/grok.json" "$tmp/grok.before-bad-config"
+set +e
+"${run[@]}" >/dev/null 2>"$tmp/bad-config.stderr"
+rc=$?
+set -e
+[[ $rc -eq 1 ]]
+[[ -f $usage/grok.json ]]
+grep -q "account profile configuration failed" "$tmp/bad-config.stderr"
+mv "$tmp/accounts.good.json" "$agents/accounts.json"
+
 set +e
 "${run[@]}" --forc >/dev/null 2>"$tmp/unknown.stderr"
 rc=$?
