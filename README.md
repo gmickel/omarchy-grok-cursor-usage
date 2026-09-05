@@ -156,3 +156,9 @@ Top-level keys on the bar entry (`omarchy bar set $USER.agents …`):
 
 MIT. `plugin/Main.qml` and `plugin/Agent.qml` started from Omarchy's agents
 widget (MIT).
+
+## CI
+
+Pull requests and main pushes run the deterministic checks in
+`.github/workflows/ci.yml`. Superseded PR runs are cancelled.
+Desktop, theme and live-account acceptance remain local; CI uses no workstation credentials.

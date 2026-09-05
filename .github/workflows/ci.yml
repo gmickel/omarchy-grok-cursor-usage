@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Check shell and Python syntax without running collectors
+        run: |
+          python3 - <<'PYCODE'
+          import subprocess
+          from pathlib import Path
+          files = [Path('install.sh'), *Path('collectors').iterdir(), Path('plugin/history.py')]
+          for path in files:
+              if not path.is_file():
+                  continue
+              source = path.read_text()
+              first = source.splitlines()[0]
+              if 'python' in first or path.suffix == '.py':
+                  compile(source, str(path), 'exec')
+              elif 'bash' in first:
+                  subprocess.run(['bash', '-n', str(path)], check=True)
+              else:
+                  raise ValueError(f'Unrecognized script interpreter: {path}')
+          PYCODE
+      - name: Validate plugin manifest
+        run: python3 -m json.tool plugin/manifest.json > /dev/null
